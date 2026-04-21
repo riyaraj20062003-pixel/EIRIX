@@ -14,24 +14,36 @@ const ROLE_COLORS: Record<string, string> = {
   mentor:  "from-emerald-600 to-teal-600",
 };
 
-// Demo credentials hint per role
-const DEMO_HINTS: Record<string, { label: string; value: string }[]> = {
+// Demo credentials — any of these will work
+const DEMO_USERS: Record<string, { email: string; password: string; rollNo?: string; employeeId?: string; name: string; role: string; course?: string; department?: string; designation?: string }[]> = {
   student: [
-    { label: "Your Name",  value: "(type your name)"          },
-    { label: "Roll No",    value: "CS2021001"                  },
-    { label: "Email",      value: "alex@university.edu"        },
-    { label: "Password",   value: "alex123"                    },
+    { email: "alex@university.edu",  password: "alex123",    rollNo: "CS2021001", name: "Alex Johnson",   role: "student", course: "B.Tech CSE · Year 3" },
+    { email: "priya@university.edu", password: "priya123",   rollNo: "CS2021002", name: "Priya Sharma",   role: "student", course: "B.Tech CSE · Year 3" },
   ],
   parent: [
-    { label: "Your Name",  value: "(type your name)"          },
-    { label: "Email",      value: "robert@gmail.com"           },
-    { label: "Password",   value: "parent123"                  },
+    { email: "robert@gmail.com",     password: "parent123",  name: "Robert Johnson", role: "parent" },
+    { email: "sunita@gmail.com",     password: "parent456",  name: "Sunita Sharma",  role: "parent" },
   ],
   mentor: [
-    { label: "Your Name",  value: "(type your name)"          },
-    { label: "Employee ID",value: "EMP001"                     },
-    { label: "Email",      value: "ramesh@university.edu"      },
-    { label: "Password",   value: "mentor123"                  },
+    { email: "ramesh@university.edu",password: "mentor123",  employeeId: "EMP001", name: "Dr. Ramesh Kumar",  role: "mentor", designation: "Associate Professor", department: "Computer Science" },
+    { email: "preet@university.edu", password: "mentor456",  employeeId: "EMP002", name: "Dr. Preet Kaur",    role: "mentor", designation: "Assistant Professor", department: "Computer Science" },
+  ],
+};
+
+const DEMO_HINTS: Record<string, { label: string; value: string }[]> = {
+  student: [
+    { label: "Email",    value: "alex@university.edu" },
+    { label: "Roll No",  value: "CS2021001"            },
+    { label: "Password", value: "alex123"              },
+  ],
+  parent: [
+    { label: "Email",    value: "robert@gmail.com" },
+    { label: "Password", value: "parent123"         },
+  ],
+  mentor: [
+    { label: "Email",       value: "ramesh@university.edu" },
+    { label: "Employee ID", value: "EMP001"                 },
+    { label: "Password",    value: "mentor123"              },
   ],
 };
 
@@ -40,11 +52,9 @@ export default function LoginPage() {
   const navigate    = useNavigate();
   const [loading,    setLoading]    = useState(false);
   const [error,      setError]      = useState("");
-  const [isNew,      setIsNew]      = useState(false);
   const [name,       setName]       = useState("");
   const [rollNo,     setRollNo]     = useState("");
   const [employeeId, setEmployeeId] = useState("");
-  const [studentRollNo, setStudentRollNo] = useState("");
   const [email,      setEmail]      = useState("");
   const [password,   setPassword]   = useState("");
 
@@ -56,46 +66,51 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
-    try {
-      const endpoint = role === "student"
-        ? "/api/auth/student/login"
-        : role === "parent"
-        ? "/api/auth/parent/login"
-        : role === "mentor"
-        ? "/api/auth/mentor/login"
-        : "/api/auth/login";
+    // Small delay to simulate auth
+    await new Promise(r => setTimeout(r, 600));
 
-      const body = role === "student"
-        ? { rollNo, email, password, name, role }
-        : role === "mentor"
-        ? { employeeId, email, password, name, role }
-        : { email, password, name, studentRollNo, role };
+    const users = DEMO_USERS[role ?? "student"] ?? [];
 
-      const res  = await fetch(endpoint, {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(body),
-      });
+    // Match by email + password
+    let matched = users.find(u =>
+      u.email.toLowerCase() === email.toLowerCase().trim() &&
+      u.password === password
+    );
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error ?? "Login failed. Check your credentials.");
-        return;
+    // For student: also check rollNo matches if provided
+    if (matched && role === "student" && rollNo.trim()) {
+      if (matched.rollNo?.toLowerCase() !== rollNo.toLowerCase().trim()) {
+        matched = undefined;
       }
-
-      localStorage.removeItem("user");
-      localStorage.removeItem("token");
-      const savedUser = { ...data.user, name: name.trim() || data.user.name };
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user",  JSON.stringify(savedUser));
-      localStorage.setItem("session_start", Date.now().toString());
-      window.location.href = `/${role}/dashboard`;
-    } catch {
-      setError("Server unreachable. Make sure the dev server is running.");
-    } finally {
-      setLoading(false);
     }
+
+    // For mentor: also check employeeId if provided
+    if (matched && role === "mentor" && employeeId.trim()) {
+      if (matched.employeeId?.toLowerCase() !== employeeId.toLowerCase().trim()) {
+        matched = undefined;
+      }
+    }
+
+    if (!matched) {
+      setError("Invalid credentials. Check the demo credentials below.");
+      setLoading(false);
+      return;
+    }
+
+    // Save user to localStorage (same shape the rest of the app expects)
+    const savedUser = {
+      ...matched,
+      name: name.trim() || matched.name,
+      id: Math.random().toString(36).slice(2),
+    };
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    localStorage.setItem("token", "demo-token-" + Date.now());
+    localStorage.setItem("user", JSON.stringify(savedUser));
+    localStorage.setItem("session_start", Date.now().toString());
+
+    setLoading(false);
+    window.location.href = `/${role}/dashboard`;
   };
 
   const hints = DEMO_HINTS[role ?? ""] ?? [];
@@ -132,44 +147,19 @@ export default function LoginPage() {
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-4">
 
-              {/* New / Existing toggle */}
-              <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl">
-                {([false, true] as const).map(v => (
-                  <button key={String(v)} type="button" onClick={() => setIsNew(v)}
-                    className={cn("flex-1 py-2 rounded-xl text-sm font-bold transition-all",
-                      isNew === v ? `bg-gradient-to-r ${gradient} text-white shadow-md` : "text-slate-500 dark:text-slate-400")}>
-                    {v ? "New User" : "Existing User"}
-                  </button>
-                ))}
-              </div>
-
-              {/* Username — always shown, used to personalize dashboard */}
+              {/* Display name */}
               <div className="space-y-2">
-                <Label htmlFor="name" className="dark:text-slate-200">Your Name</Label>
+                <Label htmlFor="name" className="dark:text-slate-200">Your Name <span className="text-slate-400 font-normal">(optional)</span></Label>
                 <div className="relative">
                   <Hash className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
                   <Input id="name" type="text"
                     placeholder={role === "mentor" ? "e.g. Dr. Ramesh Kumar" : role === "parent" ? "e.g. Robert Johnson" : "e.g. Alex Johnson"}
                     className="pl-10 h-12 bg-white/50 dark:bg-white/10 border-slate-200 dark:border-slate-600 focus:border-indigo-500 rounded-xl dark:text-slate-100"
                     value={name} onChange={e => setName(e.target.value)}
-                    required
                   />
                 </div>
-                <p className="text-xs text-slate-400 dark:text-slate-500">This name will appear on your dashboard</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">Overrides the name shown on your dashboard</p>
               </div>
-
-              {/* Name — new users only */}
-              {isNew && (
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="dark:text-slate-200">Full Name</Label>
-                  <div className="relative">
-                    <Hash className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
-                    <Input id="name" type="text" placeholder="e.g. John Smith"
-                      className="pl-10 h-12 bg-white/50 dark:bg-white/10 border-slate-200 dark:border-slate-600 focus:border-indigo-500 rounded-xl dark:text-slate-100"
-                      value={name} onChange={e => setName(e.target.value)} />
-                  </div>
-                </div>
-              )}
 
               {/* Roll No — student only */}
               {role === "student" && (
@@ -177,14 +167,9 @@ export default function LoginPage() {
                   <Label htmlFor="rollNo" className="dark:text-slate-200">Roll Number</Label>
                   <div className="relative">
                     <Hash className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
-                    <Input
-                      id="rollNo"
-                      type="text"
-                      placeholder="e.g. CS2021001"
+                    <Input id="rollNo" type="text" placeholder="e.g. CS2021001"
                       className="pl-10 h-12 bg-white/50 dark:bg-white/10 border-slate-200 dark:border-slate-600 focus:border-indigo-500 rounded-xl dark:text-slate-100"
-                      value={rollNo}
-                      onChange={e => setRollNo(e.target.value)}
-                      required
+                      value={rollNo} onChange={e => setRollNo(e.target.value)} required
                     />
                   </div>
                 </div>
@@ -196,30 +181,11 @@ export default function LoginPage() {
                   <Label htmlFor="employeeId" className="dark:text-slate-200">Employee ID</Label>
                   <div className="relative">
                     <Hash className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
-                    <Input
-                      id="employeeId"
-                      type="text"
-                      placeholder="e.g. EMP001"
+                    <Input id="employeeId" type="text" placeholder="e.g. EMP001"
                       className="pl-10 h-12 bg-white/50 dark:bg-white/10 border-slate-200 dark:border-slate-600 focus:border-indigo-500 rounded-xl dark:text-slate-100"
-                      value={employeeId}
-                      onChange={e => setEmployeeId(e.target.value)}
-                      required
+                      value={employeeId} onChange={e => setEmployeeId(e.target.value)} required
                     />
                   </div>
-                </div>
-              )}
-
-              {/* Student Roll No — parent new users */}
-              {role === "parent" && isNew && (
-                <div className="space-y-2">
-                  <Label htmlFor="studentRollNo" className="dark:text-slate-200">Child's Roll Number</Label>
-                  <div className="relative">
-                    <Hash className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
-                    <Input id="studentRollNo" type="text" placeholder="e.g. CS2021001"
-                      className="pl-10 h-12 bg-white/50 dark:bg-white/10 border-slate-200 dark:border-slate-600 focus:border-indigo-500 rounded-xl dark:text-slate-100"
-                      value={studentRollNo} onChange={e => setStudentRollNo(e.target.value)} />
-                  </div>
-                  <p className="text-xs text-slate-400 dark:text-slate-500">Enter your child's roll number to link their burnout data to your dashboard</p>
                 </div>
               )}
 
@@ -228,34 +194,22 @@ export default function LoginPage() {
                 <Label htmlFor="email" className="dark:text-slate-200">Email Address</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
-                  <Input
-                    id="email"
-                    type="email"
+                  <Input id="email" type="email"
                     placeholder={role === "student" ? "name@university.edu" : "parent@gmail.com"}
                     className="pl-10 h-12 bg-white/50 dark:bg-white/10 border-slate-200 dark:border-slate-600 focus:border-indigo-500 rounded-xl dark:text-slate-100"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    required
+                    value={email} onChange={e => setEmail(e.target.value)} required
                   />
                 </div>
               </div>
 
               {/* Password */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="dark:text-slate-200">Password</Label>
-                  <a href="#" className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Forgot?</a>
-                </div>
+                <Label htmlFor="password" className="dark:text-slate-200">Password</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
+                  <Input id="password" type="password" placeholder="••••••••"
                     className="pl-10 h-12 bg-white/50 dark:bg-white/10 border-slate-200 dark:border-slate-600 focus:border-indigo-500 rounded-xl dark:text-slate-100"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    required
+                    value={password} onChange={e => setPassword(e.target.value)} required
                   />
                 </div>
               </div>
@@ -268,11 +222,8 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <Button
-                type="submit"
-                disabled={loading}
-                className={cn("w-full h-12 text-white font-bold rounded-xl shadow-lg transition-all duration-300 bg-gradient-to-r", gradient)}
-              >
+              <Button type="submit" disabled={loading}
+                className={cn("w-full h-12 text-white font-bold rounded-xl shadow-lg transition-all duration-300 bg-gradient-to-r", gradient)}>
                 {loading
                   ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Authenticating...</>
                   : "Sign In"
@@ -282,7 +233,6 @@ export default function LoginPage() {
           </CardContent>
 
           <CardFooter className="flex flex-col gap-3 border-t border-slate-100 dark:border-slate-700 mt-2 pt-5">
-            {/* Demo credentials */}
             {hints.length > 0 && (
               <div className="w-full p-3 bg-indigo-50 dark:bg-indigo-950/30 rounded-2xl border border-indigo-100 dark:border-indigo-800">
                 <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wide mb-2">Demo Credentials</p>
@@ -296,12 +246,6 @@ export default function LoginPage() {
                 </div>
               </div>
             )}
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              New here?{" "}
-              <a href="#" className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline">
-                Create an account
-              </a>
-            </p>
           </CardFooter>
         </Card>
       </div>
