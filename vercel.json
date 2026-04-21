@@ -1,8 +1,7 @@
 {
   "buildCommand": "npm install --legacy-peer-deps && npm run build:client",
   "outputDirectory": "dist/spa",
-  "installCommand": "npm install --legacy-peer-deps",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index" }
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
