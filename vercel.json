@@ -1,6 +1,7 @@
 {
   "buildCommand": "pnpm install --no-frozen-lockfile && pnpm run build:client",
   "outputDirectory": "dist/spa",
+  "installCommand": "npm install -g pnpm@9.0.0 && pnpm install --no-frozen-lockfile",
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index" }
   ]
