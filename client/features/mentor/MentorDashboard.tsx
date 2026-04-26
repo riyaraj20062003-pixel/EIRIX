@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
   BrainCircuit, TrendingUp, TrendingDown, Minus,
   BookOpen, AlertTriangle, CheckCircle2, Info,
-  RefreshCw, Users, ChevronDown
+  RefreshCw, Users, ChevronDown, Lightbulb, Star, Target
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -70,6 +70,62 @@ function getRecommendations(entry: BurnoutEntry): { action: string; rationale: s
 
   return recs.slice(0, 5);
 }
+
+// ── Performance improvement suggestions for mentor ───────────────────────────
+function getImprovementSuggestions(entry: BurnoutEntry): { category: string; suggestion: string; impact: "high" | "medium" | "low" }[] {
+  const { input, level, score } = entry;
+  const tips = [];
+
+  // Sleep-based
+  if (input.sleep_hours < 6)
+    tips.push({ category: "Sleep Hygiene", suggestion: `Advise ${input.sleep_hours}h sleep is critically low. Recommend a fixed sleep schedule (10pm–6am) and no screens 1h before bed. Share sleep hygiene resources in next session.`, impact: "high" as const });
+  else if (input.sleep_hours < 7)
+    tips.push({ category: "Sleep Hygiene", suggestion: `Student sleeps ${input.sleep_hours}h. Suggest adding 30–45 min by shifting bedtime earlier. Even marginal improvement boosts retention significantly.`, impact: "medium" as const });
+
+  // Study load
+  if (input.study_hours > 9)
+    tips.push({ category: "Study Strategy", suggestion: `${input.study_hours}h of study is excessive. Introduce the Pomodoro method (25+5 min blocks) and help student identify low-value tasks to cut. Quality over quantity.`, impact: "high" as const });
+  else if (input.assignment_load - input.study_hours > 3)
+    tips.push({ category: "Study Strategy", suggestion: `Assignment load (${input.assignment_load}/10) far exceeds study hours (${input.study_hours}h). Help student create a weekly priority matrix — urgent vs important tasks.`, impact: "high" as const });
+  else
+    tips.push({ category: "Study Strategy", suggestion: `Study hours are balanced. Encourage active recall techniques (flashcards, practice tests) instead of passive re-reading to improve retention by up to 50%.`, impact: "low" as const });
+
+  // Stress
+  if (input.stress_level >= 8)
+    tips.push({ category: "Stress Management", suggestion: `Stress at ${input.stress_level}/10 is critical. Refer student to campus counseling immediately. In the meantime, teach box breathing (4-4-4-4) and suggest a 2-day study break.`, impact: "high" as const });
+  else if (input.stress_level >= 6)
+    tips.push({ category: "Stress Management", suggestion: `Stress at ${input.stress_level}/10 needs attention. Introduce journaling (5 min/day) and weekly mentor check-ins. Help identify the top stressor and create an action plan.`, impact: "medium" as const });
+
+  // Motivation
+  if (input.motivation_level <= 3)
+    tips.push({ category: "Motivation & Engagement", suggestion: `Motivation at ${input.motivation_level}/10 is very low. Conduct a values-clarification exercise. Set 1 micro-goal per day. Consider connecting student with a peer mentor or study buddy.`, impact: "high" as const });
+  else if (input.motivation_level <= 5)
+    tips.push({ category: "Motivation & Engagement", suggestion: `Motivation at ${input.motivation_level}/10 is declining. Celebrate small wins in sessions. Help student reconnect with their long-term academic goals through a vision-mapping exercise.`, impact: "medium" as const });
+
+  // Social
+  if (input.social_activity <= 3)
+    tips.push({ category: "Social Integration", suggestion: `Social activity at ${input.social_activity}/10 indicates isolation. Recommend joining 1 study group or club. Peer learning improves both performance and mental health outcomes.`, impact: "medium" as const });
+
+  // Screen time
+  if (input.screen_time >= 7)
+    tips.push({ category: "Digital Wellness", suggestion: `Screen time at ${input.screen_time}h is very high. Suggest app usage limits (2h recreational/day) and a "phone-free study zone". Blue light glasses and night mode can help sleep quality.`, impact: "medium" as const });
+
+  // Mood
+  if (["Low", "Very Low"].includes(input.mood))
+    tips.push({ category: "Emotional Wellbeing", suggestion: `Student's mood is "${input.mood}". This is an early warning for depression. Schedule a welfare check-in this week. Provide mental health helpline resources and check in daily via message.`, impact: "high" as const });
+
+  // Positive reinforcement
+  if (level === "low")
+    tips.push({ category: "Positive Reinforcement", suggestion: `Student is performing well (score: ${score}). Acknowledge their effort explicitly in the next session — recognition boosts intrinsic motivation. Encourage them to mentor peers.`, impact: "low" as const });
+
+  return tips.slice(0, 5);
+}
+
+const IMPACT_CFG = {
+  high:   { cls: "bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-400",           label: "High Impact" },
+  medium: { cls: "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400",   label: "Medium Impact" },
+  low:    { cls: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400", label: "Low Impact" },
+};
 
 // ── Score Ring ─────────────────────────────────────────────────────────────────
 function ScoreRing({ score, level }: { score: number; level: "low" | "moderate" | "high" }) {
@@ -410,6 +466,32 @@ export default function MentorDashboard() {
                     <span className={cn("text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wide", pcfg.cls)}>{pcfg.label}</span>
                   </div>
                   <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{r.rationale}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Performance Improvement Suggestions */}
+      <div className="glass rounded-3xl border border-white/20 dark:border-white/10 p-6 shadow-xl">
+        <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2 text-sm uppercase tracking-wide">
+          <Lightbulb className="w-4 h-4 text-amber-500" /> Performance Improvement Suggestions
+        </h3>
+        <div className="space-y-3">
+          {getImprovementSuggestions(latest).map((s, i) => {
+            const icfg = IMPACT_CFG[s.impact];
+            return (
+              <div key={i} className="flex items-start gap-3 p-4 bg-white/60 dark:bg-white/5 rounded-2xl border border-white/40 dark:border-white/10">
+                <div className="w-7 h-7 rounded-xl bg-amber-100 dark:bg-amber-950/40 flex items-center justify-center shrink-0 mt-0.5">
+                  {i === 0 ? <Star className="w-3.5 h-3.5 text-amber-500" /> : <Target className="w-3.5 h-3.5 text-amber-500" />}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <p className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">{s.category}</p>
+                    <span className={cn("text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wide", icfg.cls)}>{icfg.label}</span>
+                  </div>
+                  <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">{s.suggestion}</p>
                 </div>
               </div>
             );

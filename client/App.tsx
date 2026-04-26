@@ -26,7 +26,12 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [showWelcome, setShowWelcome] = useState(true);
+  const [showWelcome, setShowWelcome] = useState(() => !sessionStorage.getItem("welcomed"));
+
+  const handleWelcomeDone = () => {
+    sessionStorage.setItem("welcomed", "1");
+    setShowWelcome(false);
+  };
 
   // Clear stale user data older than 24 hours
   useEffect(() => {
@@ -44,7 +49,7 @@ const App = () => {
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      {showWelcome && <WelcomeScreen onDone={() => setShowWelcome(false)} />}
+      {showWelcome && <WelcomeScreen onDone={handleWelcomeDone} />}
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
