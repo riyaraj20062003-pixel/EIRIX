@@ -65,7 +65,8 @@ export default function StudentDashboard() {
       setResult(res);
       setActiveTab("score");
       // Save to localStorage so Parent Dashboard can read it
-      const existing = JSON.parse(localStorage.getItem("burnout_history") || "[]");
+      const storageKey = user.rollNo ? `burnout_history_${user.rollNo}` : "burnout_history";
+      const existing = JSON.parse(localStorage.getItem(storageKey) || "[]");
       const entry = {
         score:      res.burnout_score,
         level:      res.risk_level,
@@ -74,8 +75,8 @@ export default function StudentDashboard() {
         time:       new Date().toLocaleString(),
         input,
       };
-      const updated = [...existing.slice(-19), entry]; // keep last 20
-      localStorage.setItem("burnout_history", JSON.stringify(updated));
+      const updated = [...existing.slice(-19), entry];
+      localStorage.setItem(storageKey, JSON.stringify(updated));
       if (user.rollNo) {
         localStorage.setItem(`burnout_history_${user.rollNo}`, JSON.stringify(updated));
       }

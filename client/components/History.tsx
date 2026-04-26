@@ -31,12 +31,13 @@ function scoreLabel(score: number) {
 
 function loadFromStorage(): RealEntry[] {
   try {
-    const user    = JSON.parse(localStorage.getItem("user") ?? "{}");
-    const rollNo  = user.rollNo;
-    // Try roll-no specific key first, then generic
-    const key     = rollNo ? `burnout_history_${rollNo}` : "burnout_history";
-    const data    = JSON.parse(localStorage.getItem(key) ?? "[]");
-    if (data.length) return data;
+    const user   = JSON.parse(localStorage.getItem("user") ?? "{}");
+    const rollNo = user.rollNo;
+    if (rollNo) {
+      // Only load this user's data — never mix with other users
+      const data = JSON.parse(localStorage.getItem(`burnout_history_${rollNo}`) ?? "[]");
+      return data;
+    }
     return JSON.parse(localStorage.getItem("burnout_history") ?? "[]");
   } catch { return []; }
 }
