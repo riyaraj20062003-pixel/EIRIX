@@ -15,6 +15,16 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     outDir: "dist/spa",
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+          "vendor-ui": ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-popover"],
+          "vendor-charts": ["recharts"],
+          "vendor-three": ["three", "@react-three/fiber", "@react-three/drei"],
+        },
+      },
+    },
   },
   plugins: [react(), expressPlugin()],
   resolve: {
