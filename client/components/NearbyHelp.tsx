@@ -167,11 +167,14 @@ export default function NearbyHelp() {
       },
       err => {
         setLoading(false);
-        setError(err.code === 1
-          ? "Location access denied. Click the lock icon in your browser address bar and allow location."
-          : "Could not get your location. Please try again.");
+        if (err.code === 1)
+          setError("Location access denied. Click the 🔒 icon in your browser address bar → Site settings → Allow Location, then refresh.");
+        else if (err.code === 2)
+          setError("Location unavailable. Your device could not determine position. Try searching by city below.");
+        else
+          setError("Location request timed out. Please try again or search by city below.");
       },
-      { timeout: 12000 }
+      { timeout: 20000, enableHighAccuracy: true, maximumAge: 60000 }
     );
   };
 
@@ -332,7 +335,7 @@ export default function NearbyHelp() {
             {loading && (
               <div className="flex items-center gap-2 p-3 bg-indigo-50 dark:bg-indigo-950/30 rounded-xl">
                 <Loader2 className="w-4 h-4 text-indigo-500 animate-spin shrink-0" />
-                <p className="text-xs text-indigo-700 dark:text-indigo-300">Finding nearby hospitals...</p>
+                <p className="text-xs text-indigo-700 dark:text-indigo-300">Acquiring GPS location...</p>
               </div>
             )}
 
