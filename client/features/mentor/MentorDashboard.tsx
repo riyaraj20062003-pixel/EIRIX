@@ -111,19 +111,52 @@ export default function MentorDashboard() {
   const [verifyError,   setVerifyError]   = useState("");
   const [verified,      setVerified]      = useState(false);
 
-  const handleVerify = (e: React.FormEvent) => {
+  const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     const id = verifyInput.trim();
+    if (!id) return;
+
+    // 1. Check assigned students from localStorage first
     const mentorUser = (() => { try { return JSON.parse(localStorage.getItem("user") ?? "{}"); } catch { return {}; } })();
     const students: AssignedStudent[] = mentorUser.assignedStudents ?? [];
-    const match = students.find(s => s.rollNo.toLowerCase() === id.toLowerCase());
-    if (!match) {
-      setVerifyError("Student ID not found in your assigned students.");
+    const localMatch = students.find(s => s.rollNo.toLowerCase() === id.toLowerCase());
+
+    if (localMatch) {
+      setVerifyError("");
+      setVerified(true);
+      load(localMatch.rollNo);
       return;
     }
-    setVerifyError("");
-    setVerified(true);
-    load(match.rollNo);
+
+    // 2. Fallback: verify against server API
+    try {
+      const res = await fetch(`/api/auth/verify/${encodeURIComponent(id)}`);
+      if (!res.ok) {
+        setVerifyError("Student ID not found. Please check and try again.");
+        return;
+      }
+      const data = await res.json();
+      if (!data.verified) {
+        setVerifyError("Student ID not found. Please check and try again.");
+        return;
+      }
+      // Add to local assignedStudents so selector works
+      const newStudent: AssignedStudent = {
+        rollNo: data.student.rollNo,
+        name:   data.student.name,
+        course: data.student.course,
+        year:   data.student.year,
+      };
+      setAssignedStudents(prev => {
+        const exists = prev.find(s => s.rollNo === newStudent.rollNo);
+        return exists ? prev : [...prev, newStudent];
+      });
+      setVerifyError("");
+      setVerified(true);
+      load(newStudent.rollNo);
+    } catch {
+      setVerifyError("Could not reach server. Please try again.");
+    }
   };
 
   const load = (rollNo?: string) => {
@@ -132,15 +165,19 @@ export default function MentorDashboard() {
       setMentorName(mentorUser.name ?? "Mentor");
 
       const students: AssignedStudent[] = mentorUser.assignedStudents ?? [];
-      setAssignedStudents(students);
+      setAssignedStudents(prev => {
+        // merge server-verified students with locally assigned ones
+        const merged = [...prev];
+        students.forEach(s => { if (!merged.find(m => m.rollNo === s.rollNo)) merged.push(s); });
+        return merged;
+      });
 
-      // Pick which student to view
       const targetRollNo = rollNo ?? selectedRollNo ?? students[0]?.rollNo ?? "";
       if (targetRollNo) setSelectedRollNo(targetRollNo);
 
-      // Load that student's burnout history
-      const key     = `burnout_history_${targetRollNo}`;
-      let stored    = JSON.parse(localStorage.getItem(key) || "[]") as BurnoutEntry[];
+      // Try rollNo-specific key first, then generic key
+      let stored = JSON.parse(localStorage.getItem(`burnout_history_${targetRollNo}`) || "[]") as BurnoutEntry[];
+      if (!stored.length) stored = JSON.parse(localStorage.getItem(`burnout_history_${targetRollNo.toUpperCase()}`) || "[]") as BurnoutEntry[];
       if (!stored.length) stored = JSON.parse(localStorage.getItem("burnout_history") || "[]") as BurnoutEntry[];
 
       setHistory(stored);
@@ -217,8 +254,8 @@ export default function MentorDashboard() {
         <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">No Assessment Data</h3>
         <p className="text-slate-500 dark:text-slate-400 max-w-sm text-sm leading-relaxed">
           {selectedStudent
-            ? <><span className="font-bold text-emerald-600 dark:text-emerald-400">{selectedStudent.name}</span> hasn't submitted a burnout assessment yet.</>
-            : "No students assigned or no assessments submitted yet."
+            ? <><span className="font-bold text-emerald-600 dark:text-emerald-400">{selectedStudent.name}</span> hasn't submitted a burnout assessment yet, or they need to log in and submit from this same browser.</>
+            : "Student verified but no assessment data found. Ask the student to log in and submit a burnout check from this device."
           }
         </p>
         <button onClick={() => load()} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white font-bold text-sm hover:bg-emerald-700 transition-colors">

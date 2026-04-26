@@ -112,6 +112,9 @@ function distance(a: number[], b: number[]): number {
 // ── k-NN predict (k=15) ────────────────────────────────────────────────────────
 function knnPredict(features: number[], k = 15): { label: number; confidence: number } {
   const norm = normalize(features);
+  // Weights: [study, sleep, screen, stress, anxiety, depression, academic_pressure, financial_stress, social_support, physical_activity, sleep_quality, attendance, cgpa]
+  const WEIGHTS = [1, 1.5, 1, 2, 1, 1, 2.5, 1, 1, 1, 1.5, 1, 1];
+
   const distances = dataset.map(row => {
     const rowVec = normalize([
       row.study, row.sleep, row.screen, row.stress, row.anxiety,
@@ -119,7 +122,8 @@ function knnPredict(features: number[], k = 15): { label: number; confidence: nu
       row.social_support, row.physical_activity, row.sleep_quality,
       row.attendance, row.cgpa
     ]);
-    return { label: row.label, dist: distance(norm, rowVec) };
+    const dist = Math.sqrt(norm.reduce((sum, ai, i) => sum + WEIGHTS[i] * (ai - rowVec[i]) ** 2, 0));
+    return { label: row.label, dist };
   });
 
   distances.sort((a, b) => a.dist - b.dist);
@@ -133,14 +137,13 @@ function knnPredict(features: number[], k = 15): { label: number; confidence: nu
 }
 
 // ── Map label → score range ────────────────────────────────────────────────────
-function labelToScore(label: number, features: number[], originalStressLevel: number): number {
+function labelToScore(label: number, features: number[], originalStressLevel: number, assignmentLoad: number, studyHours: number, motivationLevel: number): number {
   const [study, sleep, screen, , anxiety, depression,
          academic_pressure, , social_support, physical_activity] = features;
 
-  // Fine-grained score within the label's band
   let base = label === 2 ? 75 : label === 1 ? 45 : 15;
   let delta = 0;
-  // Use original stress_level (1-10) not encoded (0-2)
+
   delta += (originalStressLevel / 10) * 8;
   delta += (anxiety / 10) * 5;
   delta += (depression / 10) * 5;
@@ -150,8 +153,20 @@ function labelToScore(label: number, features: number[], originalStressLevel: nu
   delta -= (physical_activity / 5) * 3;
   delta += (screen / 16) * 4;
 
+  // ── Imbalance penalty: high load vs low study ──────────────────────────────
+  const imbalance = assignmentLoad - studyHours; // positive = overloaded
+  if (imbalance > 3) delta += imbalance * 2.5;   // e.g. load=8, study=2 → +15
+  else if (imbalance > 1) delta += imbalance * 1.5;
+
+  // ── Low motivation with high load ─────────────────────────────────────────
+  if (motivationLevel <= 3 && assignmentLoad >= 6) delta += 8;
+  else if (motivationLevel <= 5 && assignmentLoad >= 7) delta += 5;
+
+  // ── Very low study hours penalty ──────────────────────────────────────────
+  if (studyHours <= 2 && assignmentLoad >= 5) delta += 6;
+
   const score = Math.round(Math.max(5, Math.min(98, base + delta)));
-  console.log(`[Score] stress=${originalStressLevel}, label=${label}, base=${base}, delta=${Math.round(delta)}, final=${score}`);
+  console.log(`[Score] stress=${originalStressLevel}, load=${assignmentLoad}, study=${studyHours}, label=${label}, base=${base}, delta=${Math.round(delta)}, final=${score}`);
   return score;
 }
 
@@ -228,9 +243,9 @@ export const handlePredict: RequestHandler = (req, res) => {
   ];
 
   const { label, confidence } = knnPredict(features);
-  const score = labelToScore(label, features, validStressLevel);
-  const levelMap = ["low", "moderate", "high"] as const;
-  const level = levelMap[label];
+  const score = labelToScore(label, features, validStressLevel, Number(assignment_load), Number(study_hours), Number(motivation_level));
+  // Override level based on final score so imbalance penalties are reflected
+  const level = score >= 65 ? "high" : score >= 40 ? "moderate" : "low";
 
   setTimeout(() => {
     res.json({
