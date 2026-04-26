@@ -40,11 +40,8 @@ export default function Index() {
     <div className="min-h-screen gradient-bg flex flex-col items-center justify-center p-6 dark:text-slate-100">
       <div className="max-w-4xl w-full text-center space-y-8">
         <div className="space-y-4">
-          <div className="inline-flex items-center justify-center p-3 bg-white/50 dark:bg-white/10 backdrop-blur-sm rounded-2xl shadow-sm mb-4">
-            <img src="/eirix-logo.png" alt="EIRIX" className="w-10 h-10 rounded-xl object-cover mr-2" />
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
-              EIRIX
-            </span>
+          <div className="inline-flex items-center justify-center p-4 bg-white/50 dark:bg-white/10 backdrop-blur-sm rounded-3xl shadow-lg mb-4">
+            <img src="/eirix-logo.png" alt="EIRIX" className="w-20 h-20 rounded-2xl object-cover shadow-xl" />
           </div>
           <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             EIRIX - AI Burnout Detection
