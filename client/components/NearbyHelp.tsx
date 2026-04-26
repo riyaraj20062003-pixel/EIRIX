@@ -456,9 +456,7 @@ export default function NearbyHelp() {
               </button>
             )}
 
-            <p className="text-[10px] text-slate-400 dark:text-slate-500 text-center">
-              OpenStreetMap · Tap <Maximize2 className="w-2.5 h-2.5 inline" /> for full view
-            </p>
+
           </>
         )}
       </div>
