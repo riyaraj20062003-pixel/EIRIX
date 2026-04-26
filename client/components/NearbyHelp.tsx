@@ -38,34 +38,69 @@ function haversine(lat1: number, lon1: number, lat2: number, lon2: number) {
 }
 
 async function fetchPlaces(lat: number, lon: number): Promise<Place[]> {
-  // Use backend proxy to avoid CORS
-  const res  = await fetch(`/api/nearby?lat=${lat}&lon=${lon}&radius=5000`);
-  if (!res.ok) throw new Error("API error");
-  const data = await res.json();
+  const query = `
+    [out:json][timeout:30];
+    (
+      node["amenity"="hospital"](around:5000,${lat},${lon});
+      node["amenity"="clinic"](around:5000,${lat},${lon});
+      node["amenity"="doctors"](around:5000,${lat},${lon});
+      node["amenity"="pharmacy"](around:5000,${lat},${lon});
+      node["office"="ngo"](around:5000,${lat},${lon});
+      node["social_facility"](around:5000,${lat},${lon});
+      way["amenity"="hospital"](around:5000,${lat},${lon});
+      way["amenity"="clinic"](around:5000,${lat},${lon});
+    );
+    out center 20;
+  `;
 
-  return (data.elements ?? [])
-    .filter((el: any) => el.tags?.name)
-    .map((el: any) => {
-      const elLat   = el.lat ?? el.center?.lat;
-      const elLon   = el.lon ?? el.center?.lon;
-      const amenity = el.tags?.amenity || el.tags?.office || el.tags?.social_facility || "";
-      let type = "clinic";
-      if (amenity === "hospital")                                  type = "hospital";
-      else if (amenity === "pharmacy")                             type = "pharmacy";
-      else if (amenity === "ngo" || amenity === "social_facility") type = "ngo";
-      else if (amenity === "doctors")                              type = "counselor";
-      return {
-        id: el.id, name: el.tags.name, type,
-        distance: haversine(lat, lon, elLat, elLon),
-        lat: elLat, lon: elLon,
-        phone:   el.tags?.phone || el.tags?.["contact:phone"],
-        address: el.tags?.["addr:street"]
-          ? `${el.tags["addr:housenumber"] ?? ""} ${el.tags["addr:street"]}`.trim()
-          : undefined,
-      };
-    })
-    .sort((a: Place, b: Place) => a.distance - b.distance)
-    .slice(0, 12);
+  // Try multiple Overpass mirrors in order
+  const MIRRORS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+  ];
+
+  let lastErr: Error | null = null;
+  for (const mirror of MIRRORS) {
+    try {
+      const res = await fetch(mirror, {
+        method: "POST",
+        body: `data=${encodeURIComponent(query)}`,
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        signal: AbortSignal.timeout(15000),
+      });
+      if (!res.ok) continue;
+      const data = await res.json();
+      if (!data.elements) continue;
+
+      return (data.elements ?? [])
+        .filter((el: any) => el.tags?.name)
+        .map((el: any) => {
+          const elLat   = el.lat ?? el.center?.lat;
+          const elLon   = el.lon ?? el.center?.lon;
+          const amenity = el.tags?.amenity || el.tags?.office || el.tags?.social_facility || "";
+          let type = "clinic";
+          if (amenity === "hospital")                                  type = "hospital";
+          else if (amenity === "pharmacy")                             type = "pharmacy";
+          else if (amenity === "ngo" || amenity === "social_facility") type = "ngo";
+          else if (amenity === "doctors")                              type = "counselor";
+          return {
+            id: el.id, name: el.tags.name, type,
+            distance: haversine(lat, lon, elLat, elLon),
+            lat: elLat, lon: elLon,
+            phone:   el.tags?.phone || el.tags?.["contact:phone"],
+            address: el.tags?.["addr:street"]
+              ? `${el.tags["addr:housenumber"] ?? ""} ${el.tags["addr:street"]}`.trim()
+              : undefined,
+          };
+        })
+        .sort((a: Place, b: Place) => a.distance - b.distance)
+        .slice(0, 12);
+    } catch (e) {
+      lastErr = e as Error;
+    }
+  }
+  throw lastErr ?? new Error("All Overpass mirrors failed");
 }
 
 // ── Single place card ──────────────────────────────────────────────────────────
@@ -148,7 +183,7 @@ export default function NearbyHelp() {
       setLocation({ lat: manualLat, lon: manualLon });
       fetchPlaces(manualLat, manualLon)
         .then(setPlaces)
-        .catch(() => setError("Could not load nearby places. Make sure the dev server is running."))
+        .catch(() => setError("Could not load nearby places. The map service may be temporarily unavailable — try searching by city below."))
         .finally(() => setLoading(false));
       return;
     }
