@@ -2,7 +2,6 @@ import { BrainCircuit, LayoutDashboard, TrendingUp, Bot, BookOpen, Settings, Log
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useTheme } from "../context/ThemeContext";
-import LanguageSwitcher from "./LanguageSwitcher";
 import { useTranslation } from "react-i18next";
 
 const NAV_ITEMS = [
@@ -93,13 +92,6 @@ export default function StudentNavbar({ activeTab, onTabChange }: Props) {
           </button>
         </div>
 
-        <div className="px-2 py-1">
-          <LanguageSwitcher />
-        </div>
-
-        <div className="px-2 py-1">
-          <LanguageSwitcher />
-        </div>
         {/* Sign out */}
         <Link
           to="/"

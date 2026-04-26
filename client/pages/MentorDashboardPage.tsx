@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "../context/ThemeContext";
 import MentorDashboardFeature from "../features/mentor/MentorDashboard";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import LanguageSwitcher from "../components/LanguageSwitcher";
 
 function MentorSidebar() {
   const { darkMode, setDarkMode } = useTheme();
@@ -53,7 +52,7 @@ function MentorSidebar() {
             <div className={cn("bg-white w-4 h-4 rounded-full shadow-md transform transition-transform", darkMode ? "translate-x-6" : "")} />
           </button>
         </div>
-        <div className="px-2 py-1"><LanguageSwitcher /></div>
+        <div className="px-2 py-1"></div>
         <Link to="/" className="flex items-center space-x-3 px-4 py-3 rounded-2xl text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors font-semibold">
           <LogOut className="w-5 h-5" />
           <span>Sign Out</span>

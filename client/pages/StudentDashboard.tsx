@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Calendar, UserCircle, Activity, BrainCircuit } from "lucide-react";
+import { Calendar, Activity, BrainCircuit } from "lucide-react";
+import LanguageSwitcher from "../components/LanguageSwitcher";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import StudentNavbar from "../components/StudentNavbar";
 import InputControls from "../components/InputControls";
@@ -116,13 +117,11 @@ export default function StudentDashboard() {
               <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white">{t("welcome")}, {displayName} 👋</h1>
               <p className="text-slate-500 dark:text-slate-400 mt-1">{user.rollNo ? `${user.rollNo} � ` : ""}{user.course ?? "Track your well-being and maintain academic balance."}</p>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center gap-3">
+              <LanguageSwitcher />
               <div className="flex items-center bg-white/60 dark:bg-white/10 backdrop-blur-sm px-4 py-2 rounded-2xl border border-white/30 shadow-sm">
                 <Calendar className="w-4 h-4 text-indigo-600 mr-2" />
                 <span className="text-slate-700 dark:text-slate-200 font-medium text-sm">{today()}</span>
-              </div>
-              <div className="w-11 h-11 rounded-2xl glass flex items-center justify-center border border-white/50 shadow-sm">
-                <UserCircle className="w-7 h-7 text-slate-400" />
               </div>
             </div>
           </header>
@@ -190,7 +189,7 @@ export default function StudentDashboard() {
 
               {activeTab === "insights" && (
                 result
-                  ? <Insights result={result} onNewCheck={handleReset} />
+                  ? <Insights result={result} input={input} onNewCheck={handleReset} />
                   : <div className="text-center py-16 text-slate-400 dark:text-slate-500">
                       <p className="font-semibold">Run a prediction first to see insights.</p>
                       <button onClick={() => setActiveTab("input")} className="mt-3 text-indigo-600 dark:text-indigo-400 font-bold hover:underline text-sm">

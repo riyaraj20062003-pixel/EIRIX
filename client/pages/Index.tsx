@@ -92,9 +92,6 @@ export default function Index() {
         <p className="text-sm text-slate-400 mt-12">
           Secure. Confidential. AI-Powered Mental Health Support.
         </p>
-        <div className="flex justify-center mt-4">
-          <LanguageSwitcher />
-        </div>
       </div>
     </div>
   );

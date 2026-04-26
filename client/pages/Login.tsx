@@ -106,9 +106,6 @@ export default function LoginPage() {
         <ArrowLeft className="w-4 h-4 mr-2" />
         Back to role selection
       </Link>
-      <div className="absolute top-8 right-8">
-        <LanguageSwitcher />
-      </div>
 
       <div className="max-w-md w-full space-y-6">
         <div className="text-center">
