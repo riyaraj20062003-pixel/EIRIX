@@ -37,19 +37,19 @@ export default function Index() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen gradient-bg flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen gradient-bg flex flex-col items-center justify-center p-6 dark:text-slate-100">
       <div className="max-w-4xl w-full text-center space-y-8">
         <div className="space-y-4">
-          <div className="inline-flex items-center justify-center p-3 bg-white/50 backdrop-blur-sm rounded-2xl shadow-sm mb-4">
+          <div className="inline-flex items-center justify-center p-3 bg-white/50 dark:bg-white/10 backdrop-blur-sm rounded-2xl shadow-sm mb-4">
             <img src="/eirix-logo.png" alt="EIRIX" className="w-10 h-10 rounded-xl object-cover mr-2" />
             <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
               EIRIX
             </span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight">
             EIRIX - AI Burnout Detection
           </h1>
-          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+          <p className="text-lg text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
             Harnessing behavioral AI to prevent student burnout before it starts.
             Who are you?
           </p>
@@ -74,12 +74,12 @@ export default function Index() {
                 <role.icon className="w-8 h-8" />
               </div>
               
-              <h3 className="text-2xl font-bold text-slate-800 mb-2">{role.title}</h3>
-              <p className="text-slate-600 leading-relaxed">
+              <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">{role.title}</h3>
+              <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
                 {role.description}
               </p>
               
-              <div className="mt-6 flex items-center text-indigo-600 font-semibold group-hover:translate-x-2 transition-transform">
+              <div className="mt-6 flex items-center text-indigo-500 dark:text-indigo-400 font-semibold group-hover:translate-x-2 transition-transform">
                 Get Started
                 <svg className="ml-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -89,7 +89,7 @@ export default function Index() {
           ))}
         </div>
 
-        <p className="text-sm text-slate-400 mt-12">
+        <p className="text-sm text-slate-400 dark:text-slate-500 mt-12">
           Secure. Confidential. AI-Powered Mental Health Support.
         </p>
       </div>
