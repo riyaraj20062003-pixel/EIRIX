@@ -1,5 +1,5 @@
 import "./global.css";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import { ThemeProvider } from "./context/ThemeContext";
 import { Toaster } from "@/components/ui/toaster";
@@ -7,6 +7,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import WelcomeScreen from "./pages/WelcomeScreen";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import StudentDashboard from "./pages/StudentDashboard";
@@ -24,6 +25,8 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => {
+  const [showWelcome, setShowWelcome] = useState(true);
+
   // Clear stale user data older than 24 hours
   useEffect(() => {
     const sessionStart = localStorage.getItem("session_start");
@@ -40,6 +43,7 @@ const App = () => {
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      {showWelcome && <WelcomeScreen onDone={() => setShowWelcome(false)} />}
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
